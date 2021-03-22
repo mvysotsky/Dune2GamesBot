@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+
+  db:
+    container_name: dune-bot-db
+    build: ./docker/database
+    ports:
+      - "3308:3306"
+    networks:
+      - dune-bot
+    volumes:
+      - ./docker/database/dbdata:/var/lib/mysql
+
+  node:
+    container_name: dune-bot-node
+    build: ./docker/node
+    networks:
+      - dune-bot
+    volumes:
+      - ./app/:/usr/src/app
+    command: ["sh", "-c", "docker-start ; pm2-runtime start /usr/src/app/server.js --watch"]
+
+networks:
+  dune-bot:
