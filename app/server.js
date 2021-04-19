@@ -9,6 +9,8 @@ const servers = [
     '151.248.126.219',
 ];
 
+const HTMLOptions = {parseMode: 'HTML', webPreview: false};
+
 let new_pending = {};
 let lastListID = {};
 let lastOpenID = {};
@@ -46,7 +48,7 @@ async function getGameInfoMarkup(game, type = 'group') {
 
     let response = `<b>🕹 Игра #${game.game_id}</b>\n`;
 
-    response += `Создал: ${game.from.first_name} @${game.from.username}\n`;
+    response += `Создал: ${game.from.first_name} t.me/${game.from.username}\n`;
     response += `Сервер: <code>${game.server}</code>\n`;
     response += `Создана: ${new Date(game.started).toLocaleString('ru-RU')}\n`;
 
@@ -54,7 +56,7 @@ async function getGameInfoMarkup(game, type = 'group') {
         let follower = await bot.getChatMember(game.group_id, game.follower_id);
 
         response += `Начало игры: ${new Date(game.active).toLocaleString('ru-RU')}\n`;
-        response += `Второй игрок: ${follower.user.first_name} @${follower.user.username}\n`;
+        response += `Второй игрок: ${follower.user.first_name} t.me/${follower.user.username}\n`;
     }
 
     if (type === 'group') {
@@ -84,7 +86,7 @@ bot.on([/^\/new@Dune2GamesBot$/, /^\/new$/], async (msg, props) => {
         await bot.sendMessage(msg.from.id, 'Выберите сервер:', {replyMarkup});
     } catch (error) {
         if (error.error_code === 403) {
-            reply(msg, `${msg.from.first_name}, я не могу тебе написать 😕 Добавь меня пожалуйста: @Dune2GamesBot`);
+            reply(msg, `${msg.from.first_name}, я не могу тебе написать 😕 Добавь меня и попробуй еще раз: @Dune2GamesBot`);
         }
     }
 
@@ -119,7 +121,7 @@ bot.on('text', async (msg, props) => {
         let group_response = 'Создана новая игра:\n\n' + await getGameInfoMarkup(games[group_id][game_id]);
 
         await bot.sendMessage(msg.from.id, `Номер вашей игры: ${game_id}. Ожидаем подключение второго игрока.`);
-        await bot.sendMessage(group_id, group_response, {parseMode: 'HTML'});
+        await bot.sendMessage(group_id, group_response, HTMLOptions);
     }
 
 });
@@ -139,13 +141,13 @@ bot.on(/^\/join_(\d+)@Dune2GamesBot$/, async (msg, props) => {
     response += `<b>🕹 Подтвердить:</b> /accept_${Math.abs(group_id)}_${game_id}_${msg.from.id}\n`;
     response += `<b>🙅 Отклонить:</b> /decline_${Math.abs(group_id)}_${game_id}_${msg.from.id}\n`;
 
-    await bot.sendMessage(games[group_id][game_id].from.id, response, {parseMode: 'HTML'});
+    await bot.sendMessage(games[group_id][game_id].from.id, response, HTMLOptions);
 
     try {
         await bot.sendMessage(msg.from.id, 'Создателю игры отправлен запрос на подключение');
     } catch (error) {
         if (error.error_code === 403) {
-            reply(msg, `${msg.from.first_name}, я не могу тебе написать 😕 Добавь меня пожалуйста: @Dune2GamesBot`);
+            reply(msg, `${msg.from.first_name}, я не могу тебе написать 😕 Добавь меня и попробуй еще раз: @Dune2GamesBot`);
         }
     }
 
@@ -165,7 +167,7 @@ bot.on(/^\/accept_(\d+)_(\d+)_(\d+)$/, async (msg, props) => {
 
     await bot.sendMessage(msg.from.id, `Отправляю код доступа второму игроку.`);
     await bot.sendMessage(follower_id, `Заявка к игре #${game_id} подтверждена. Код доступа: ${game.key}`);
-    await bot.sendMessage(follower_id, await getGameInfoMarkup(game, 'follower'), {parseMode: 'HTML'});
+    await bot.sendMessage(follower_id, await getGameInfoMarkup(game, 'follower'), HTMLOptions);
 
 });
 
@@ -228,11 +230,17 @@ bot.on([/^\/list@Dune2GamesBot$/, /^\/list$/], async (msg) => {
     let chatID = msg.chat.id;
 
     if (msg.chat.type === 'private') {
-        let response = 'Список ваших игр:\n\n';
+        let response = 'Список ваших игр:\n';
         let isGamesAvailable = false;
 
-        for (const group of games) {
-            for (const game of group) {
+        for (const groupID in games) {
+            if (typeof games[groupID] === 'undefined') continue;
+            let group = games[groupID];
+
+            for (let gameID = 0; gameID < group.length; gameID++) {
+                if (typeof group[gameID] === 'undefined') continue;
+                let game = group[gameID];
+
                 if (game.finished) {
                     continue;
                 }
@@ -252,7 +260,7 @@ bot.on([/^\/list@Dune2GamesBot$/, /^\/list$/], async (msg) => {
         if (!isGamesAvailable) {
             return await bot.sendMessage(chatID, 'У вас нет активных игр в данный момент');
         } else {
-            bot.sendMessage(chatID, response, {parseMode: 'HTML'}).then( re => {
+            bot.sendMessage(chatID, response, HTMLOptions).then( re => {
                 lastListID[chatID] = re.message_id;
             });
         }
@@ -263,7 +271,7 @@ bot.on([/^\/list@Dune2GamesBot$/, /^\/list$/], async (msg) => {
             return msg.reply.text('В этом чате нет доступных игр');
         }
 
-        bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'list'), {parseMode: 'HTML'}).then( re => {
+        bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'list'), HTMLOptions).then( re => {
             lastListID[chatID] = re.message_id;
         });
     }
@@ -280,7 +288,7 @@ bot.on([/^\/active@Dune2GamesBot$/, /^\/active$/], async (msg) => {
         return msg.reply.text('В этом чате нет активных игр');
     }
 
-    bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'active'), {parseMode: 'HTML'}).then( re => {
+    bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'active'), HTMLOptions).then( re => {
         lastActiveID[groupID] = re.message_id;
     });
 });
@@ -296,7 +304,7 @@ bot.on([/^\/open@Dune2GamesBot$/, /^\/open$/], async (msg) => {
         return msg.reply.text('В этом чате нет открытых игр');
     }
 
-    bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'open'), {parseMode: 'HTML'}).then( re => {
+    bot.sendMessage(msg.chat.id, await getGroupGamesList(groupID, 'open'), HTMLOptions).then( re => {
         lastOpenID[groupID] = re.message_id;
     });
 });
@@ -352,14 +360,15 @@ async function updateGroupLists(groupID) {
             let messageID = lastListID[groupID];
             await bot.editMessageText(
                 {chatId: groupID, messageId: messageID}, await getGroupGamesList(groupID, 'list'),
-                {parseMode: 'html'})
+                HTMLOptions
+            )
         }
 
         if (lastOpenID[groupID]) {
             let messageID = lastOpenID[groupID];
             await bot.editMessageText(
                 {chatId: groupID, messageId: messageID}, await getGroupGamesList(groupID, 'open'),
-                {parseMode: 'html'}
+                HTMLOptions
             )
         }
 
@@ -367,7 +376,7 @@ async function updateGroupLists(groupID) {
             let messageID = lastActiveID[groupID];
             await bot.editMessageText(
                 {chatId: groupID, messageId: messageID}, await getGroupGamesList(groupID, 'active'),
-                {parseMode: 'html'}
+                HTMLOptions
             )
         }
     } catch (e) {
