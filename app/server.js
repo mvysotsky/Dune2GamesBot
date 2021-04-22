@@ -1,7 +1,7 @@
 // https://github.com/mullwar/telebot
 const TeleBot = require('telebot');
 
-const bot = new TeleBot('1613103423:AAF1Stk2XAikkL2LeB_eDh1PN3WrJtHKfAs');
+const bot = new TeleBot(process.env.BOT_TOKEN);
 
 const servers = [
     'gs.emu-land.net',
@@ -126,7 +126,7 @@ bot.on('text', async (msg, props) => {
 
 });
 
-bot.on(/^\/join_(\d+)@Dune2GamesBot$/, async (msg, props) => {
+bot.on([/^\/join_(\d+)@Dune2GamesBot$/, /^\/join_(\d+)$/], async (msg, props) => {
 
     if (msg.chat.type !== 'group') {
         return await bot.sendMessage(msg.from.id, 'На данный момент эта команда доступна только для групповых чатов.');
@@ -186,7 +186,7 @@ bot.on(/^\/decline_(\d+)_(\d+)_(\d+)$/, async (msg, props) => {
 
 });
 
-bot.on([/^\/stop_(\d+)@Dune2GamesBot$/, /^\/stop_(\d+)_(\d+)$/], async (msg, props) => {
+bot.on([/^\/stop_(\d+)@Dune2GamesBot$/, /^\/stop_(\d+)$/, /^\/stop_(\d+)_(\d+)$/], async (msg, props) => {
 
     let chat_id = msg.chat.id;
     let group_id = msg.chat.type === 'group' ? chat_id : -props.match[2];
@@ -234,13 +234,7 @@ bot.on([/^\/list@Dune2GamesBot$/, /^\/list$/], async (msg) => {
         let isGamesAvailable = false;
 
         for (const groupID in games) {
-            if (typeof games[groupID] === 'undefined') continue;
-            let group = games[groupID];
-
-            for (let gameID = 0; gameID < group.length; gameID++) {
-                if (typeof group[gameID] === 'undefined') continue;
-                let game = group[gameID];
-
+            for (const game of games[groupID]) {
                 if (game.finished) {
                     continue;
                 }
