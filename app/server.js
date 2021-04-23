@@ -106,17 +106,17 @@ bot.on('text', async (msg, props) => {
 
     if (new_pending[msg.from.id]['key'] === 'pending') {
         let group_id = new_pending[msg.from.id]['group_id'];
-        let game_id = games[group_id].length;
 
-        games[group_id][game_id] = {
+        let length = games[group_id].push({
             'game_id': game_id,
             'group_id': group_id,
             'server': new_pending[msg.from.id]['server'],
             'key': msg.text,
             'started': Date.now(),
             'from': msg.from
-        };
+        });
 
+        let game_id = length - 1;
         delete new_pending[msg.from.id];
         let group_response = 'Создана новая игра:\n\n' + await getGameInfoMarkup(games[group_id][game_id]);
 
